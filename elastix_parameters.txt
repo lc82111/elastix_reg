@@ -1,0 +1,63 @@
+// ********** Transform
+
+// Rigid, Affine, BSpline
+(Transform "EulerTransform")
+(AutomaticTransformInitialization "true")
+(AutomaticScalesEstimation "true")
+(HowToCombineTransforms "Compose")
+//(CenterOfRotation 128 128) center by default
+
+// ********** Pyramid 
+
+(Registration "MultiResolutionRegistration")
+(FixedImagePyramid "FixedRecursiveImagePyramid")
+(MovingImagePyramid "MovingRecursiveImagePyramid")
+// GPU/OpenCL acceleration
+// (FixedImagePyramid "OpenCLFixedGenericImagePyramid")
+// (MovingImagePyramid "OpenCLMovingGenericImagePyramid")
+// (OpenCLFixedGenericImagePyramidUseOpenCL "true")
+// (OpenCLMovingGenericImagePyramidUseOpenCL "true")
+// Total number of resolutions
+(NumberOfResolutions 3)
+
+// ********** Resampler
+(Resampler "DefaultResampler")
+// GPU/OpenCL acceleration
+// (Resampler "OpenCLResampler")
+// (OpenCLResamplerUseOpenCL "true")
+
+// ********** Metric
+
+(Metric "AdvancedMattesMutualInformation")
+// Number of grey level bins in each resolution level:
+(NumberOfHistogramBins 32)
+// Number of spatial samples used to compute the mutual information in each resolution level:
+(NumberOfSpatialSamples 2048)
+(ImageSampler "RandomCoordinate")
+(NewSamplesEveryIteration "true")
+
+// ********** Optimizer
+
+// Maximum number of iterations in each resolution level:
+(MaximumNumberOfIterations 300 300 600)
+(Optimizer "AdaptiveStochasticGradientDescent")
+(UseAdaptiveStepSizes "true")
+
+// ********** Image Types
+
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+(UseDirectionCosines "true")
+
+// *********** Interpolator during Registration
+(Interpolator "LinearInterpolator")
+
+// **********  final Interpolator for generating the output image
+(ResampleInterpolator "FinalBSplineInterpolator")
+(FinalBSplineInterpolationOrder 3)
+
+// ********** Saving 
+
+(WriteResultImage "true")
+(ResultImagePixelType "float")
+(ResultImageFormat "nii")
