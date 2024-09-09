@@ -10,7 +10,8 @@
 #include "itkLinearInterpolateImageFunction.h"
 #include "itkImportImageFilter.h"
 #include "itkRawImageIO.h" 
-#include "itkRescaleIntensityImageFilter.h" // Add this line
+#include "itkRescaleIntensityImageFilter.h"
+#include "itkGPUDiscreteGaussianImageFilter.h" 
 #include <chrono>
 #include <iostream>
 
@@ -18,6 +19,7 @@
 using PixelType = float;
 constexpr unsigned int Dimension = 3;
 using ImageType = itk::Image<PixelType, Dimension>;
+using GPUImageType = itk::GPUImage<float, Dimension>;
 
 template<typename ImageType> void saveSliceToPNG(const typename ImageType::Pointer& img, const unsigned int sliceIndex, const std::string& outputFilename)
 {
@@ -101,6 +103,41 @@ ImageType::Pointer loadITKImage(const std::string& filename)
     reader->SetFileName(filename);
     reader->Update();
     return reader->GetOutput();
+}
+
+void saveITKImage(const ImageType::Pointer image, const std::string& filename) {
+    using WriterType = itk::ImageFileWriter<ImageType>;
+    auto writer = WriterType::New();
+    writer->SetFileName(filename);
+    writer->SetInput(image);
+    writer->Update();
+}
+
+ImageType::Pointer applyGaussianFilter(const std::string& inputFilename, const std::string& outputFilename, float sigma) {
+
+    // Load the input image
+    auto inputImage = loadITKImage(inputFilename);
+
+    // Convert the input image to GPU image
+    using CPUToGPUFilterType = itk::CastImageFilter<ImageType, GPUImageType>;
+    auto cpuToGpuFilter = CPUToGPUFilterType::New();
+    cpuToGpuFilter->SetInput(inputImage);
+    cpuToGpuFilter->Update();
+
+    // Apply the GPU Gaussian filter
+    using FilterType = itk::GPUDiscreteGaussianImageFilter<GPUImageType, GPUImageType>;
+    auto filter = FilterType::New();
+    filter->SetInput(cpuToGpuFilter->GetOutput());
+    filter->SetVariance(sigma * sigma);
+    filter->Update();
+
+    // Convert the filtered GPU image back to CPU image
+    using GPUToCPUFilterType = itk::CastImageFilter<GPUImageType, ImageType>;
+    auto gpuToCpuFilter = GPUToCPUFilterType::New();
+    gpuToCpuFilter->SetInput(filter->GetOutput());
+    gpuToCpuFilter->Update();
+
+    return gpuToCpuFilter->GetOutput();
 }
 
 template<typename T> ImageType::Pointer loadRawImage3(const std::string& filename, const ImageType::SizeType& size, const ImageType::SpacingType& spacing)
@@ -350,6 +387,8 @@ void performRegistration(ImageType::Pointer fixedImage, ImageType::Pointer movin
     }
     return;
 }
+
+
 
 int main(int argc, char * argv[])
 {
